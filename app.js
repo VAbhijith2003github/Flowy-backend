@@ -4,11 +4,12 @@ const port = process.env.PORT || 3001;
 const cors = require("cors");
 const client = require("./databasepg");
 const taskRouter = require("./routes/task");
+const userRouter = require("./routes/user");
 
 app.use(express.json());
 app.use(cors());
 app.use("/api/tasks", taskRouter);
-
+app.use("/api/users", userRouter);
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
