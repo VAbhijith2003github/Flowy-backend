@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const client = require("../databasepg");
 const jwt = require("jsonwebtoken");
+// const nodemailer = require("nodemailer");
 
 router.get("/", (req, res, next) => {
   const GetAllTasks = async () => {
@@ -91,10 +92,7 @@ router.post("/", (req, res, next) => {
       [assigned_to]
     );
 
-    if (assignee.rows.length === 0) {
-      return res.status(404).json({ error: "Assignee not found" });
-    }
-    const assigneeId = assignee.rows[0].user_id;
+    const assigneeId = assignee.rows[0].user_id || null;
     try {
       const newTask = await client.query(
         "INSERT INTO tasks (string_id, title, completed, description, dateofcreation, dueDate, dateCompleted, assigned_by, assigned_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
@@ -110,6 +108,29 @@ router.post("/", (req, res, next) => {
           assigneeId,
         ]
       );
+      // if (assigneeId) {
+      //   const mailOptions = {
+      //     from: "v.abhijith.mst21@itbhu.ac.in",
+      //     to: assigned_to,
+      //     subject: "Task Assigned",
+      //     text: `You have been assigned a task: ${title}`,
+      //   };
+      //   var transporter = nodemailer.createTransport({
+      //     host: "live.smtp.mailtrap.io",
+      //     port: 587,
+      //     auth: {
+      //       user: "api",
+      //       pass: "876fe02ecbc00f8496f65eff44885dae",
+      //     },
+      //   });
+      //   transporter.sendMail(mailOptions, (err, info) => {
+      //     if (err) {
+      //       console.log(err);
+      //     } else {
+      //       console.log("Email sent: " + info.response);
+      //     }
+      //   });
+      // }
 
       res.json(newTask.rows[0]);
     } catch (err) {
