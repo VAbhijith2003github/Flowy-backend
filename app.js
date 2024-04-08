@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
-const port = process.env.PORT || 3001;
+require('dotenv').config();
+const port =3001;
 const cors = require("cors");
 const client = require("./databasepg");
 const taskRouter = require("./routes/task");
