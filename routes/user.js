@@ -58,7 +58,7 @@ router.post("/login", (req, res, next) => {
       ]);
 
       if (user.rows.length === 0) {
-        res.status(400).json({ message: "User not found" });
+        res.status(404).json({ message: "User not found" });
         return;
       }
       const validPassword = await bcrypt.compare(
@@ -66,7 +66,7 @@ router.post("/login", (req, res, next) => {
         user.rows[0].password
       );
       if (!validPassword) {
-        res.status(400).json({ message: "Invalid password", password });
+        res.status(401).json({ message: "Invalid password", password });
         return;
       }
 
