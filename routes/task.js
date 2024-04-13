@@ -92,7 +92,11 @@ router.post("/", (req, res, next) => {
       [assigned_to]
     );
 
-    const assigneeId = assignee.rows[0].user_id || null;
+    if (assigned_to === null) {
+      assigneeId = null;
+    } else {
+      assigneeId = assignee.rows[0].user_id;
+    }
     try {
       const newTask = await client.query(
         "INSERT INTO tasks (string_id, title, completed, description, dateofcreation, dueDate, dateCompleted, assigned_by, assigned_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
