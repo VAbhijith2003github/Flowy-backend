@@ -3,6 +3,8 @@ const router = express.Router();
 const client = require("../databasepg");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const auth = require("../middleware/auth");
+require("dotenv").config();
 
 router.post("/signup", (req, res, next) => {
   const AddUser = async () => {
@@ -23,7 +25,7 @@ router.post("/signup", (req, res, next) => {
 
       jwt.sign(
         { user_id },
-        "privatekey",
+        process.env.JWT_SECRET,
         { expiresIn: "12h" },
         (err, token) => {
           if (err) {
@@ -66,13 +68,13 @@ router.post("/login", (req, res, next) => {
         user.rows[0].password
       );
       if (!validPassword) {
-        res.status(401).json({ message: "Invalid password", password });
+        res.status(401).json({ message: "Invalid password" });
         return;
       }
 
       jwt.sign(
         { user_id: user.rows[0].user_id },
-        "privatekey",
+        process.env.JWT_SECRET,
         { expiresIn: "12h" },
         (err, token) => {
           if (err) {
@@ -92,51 +94,16 @@ router.post("/login", (req, res, next) => {
     .catch((err) => next(err));
 });
 
-router.post("/verifyToken", (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
-
-  jwt.verify(token, "privatekey", (err, authorizedData) => {
-    if (err) {
-      console.log("ERROR: Could not connect to the protected route");
-      return res.sendStatus(403);
-    } else {
-      console.log(
-        "SUCCESS: Connected to protected route: Get all tasks for user",
-        authorizedData
-      );
-      res.json({ message: "Token is valid" });
-    }
-  });
+router.post("/verifyToken", auth, (req, res, next) => {
+  res.json({ message: "Token is valid", user: req.user });
 });
 
-router.post("/checkuserexits", (req, res, next) => {
+router.post("/checkuserexits", auth, (req, res, next) => {
   const CheckUserExists = async () => {
-    // verify token start
-    const authtokenwithbearer = req.headers.authorization;
-    if (!authtokenwithbearer) {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized: Token not provided" });
-    }
-    const authtoken = authtokenwithbearer.split(" ")[1];
-    const decoded = await jwt.verify(authtoken, "privatekey");
-    if (!decoded) {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized: Token not provided" });
-    }
-    const user = await client.query("SELECT * FROM users WHERE user_id = $1", [
-      decoded.user_id,
-    ]);
-    if (user.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    // verify token end
-
     const { email } = req.body;
 
     if (!email) {
-      return;
+      return res.status(400).json({ error: "Email is required" });
     }
 
     try {
@@ -161,35 +128,17 @@ router.post("/checkuserexits", (req, res, next) => {
     .catch((err) => next(err));
 });
 
-router.post("/getuser", (req, res, next) => {
+router.get("/getuser", auth, (req, res, next) => {
   const GetUser = async () => {
-    // verify token start
-    const authtokenwithbearer = req.headers.authorization;
-    if (!authtokenwithbearer) {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized: Token not provided" });
-    }
-    const authtoken = authtokenwithbearer.split(" ")[1];
-    const decoded = await jwt.verify(authtoken, "privatekey");
-    if (!decoded) {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized: Token not provided" });
-    }
-    const user = await client.query("SELECT * FROM users WHERE user_id = $1", [
-      decoded.user_id,
-    ]);
-    if (user.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    // verify token end
-    const { id } = req.body;
     try {
       const user = await client.query(
-        "SELECT * FROM users WHERE user_id = $1",
-        [id]
+        "SELECT email FROM users WHERE user_id = $1",
+        [req.user.user_id]
       );
+
+      if (user.rows.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
       res.json(user.rows[0].email);
     } catch (err) {
